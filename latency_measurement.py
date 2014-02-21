@@ -22,7 +22,13 @@ class RawTCPProtocol(AbstractDatagramProtocol):
     def __init__(self):
         self._connections = {}
         self._times = []
-        self._log = open("connection-setup-times.txt", "at")
+
+        # Unbuffered mode makes it possible to do things like tail the log and
+        # get semi-realtime results.  It should also prevent any lines from
+        # being written non-atomically (if partial lines get written there will
+        # be some mild corruption in the file).  This depends on the code using
+        # self._log writing complete lines, of course.
+        self._log = open("connection-setup-times.txt", "at", 0)
 
 
     def datagramReceived(self, data, partial, source, dest, *args, **kwargs):
