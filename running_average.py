@@ -2,9 +2,9 @@ if __name__ == '__main__':
     import running_average
     raise SystemExit(running_average.main())
 
-from sys import argv, stdin, stderr
+from sys import argv, stdin
 
-from ipaddr import IPNetwork, IPAddress
+from json import loads
 
 from twisted.python.usage import UsageError, Options
 
@@ -13,30 +13,6 @@ class RunningAverageOptions(Options):
         ('window', 'w', 60, 'amount of time over which to average (seconds)', float),
         ]
 
-    def __init__(self):
-        Options.__init__(self)
-        self["source-networks"] = []
-        self["destination-networks"] = []
-
-    def opt_include_source(self, network):
-        self["source-networks"].append((True, IPNetwork(network)))
-
-    def opt_exclude_source(self, network):
-        self["source-networks"].append((False, IPNetwork(network)))
-
-    def opt_include_destination(self, network):
-        self["destination-networks"].append((True, IPNetwork(network)))
-
-    def opt_exclude_destination(self, network):
-        self["destination-networks"].append((False, IPNetwork(network)))
-
-
-def match(address, networks):
-    address = IPAddress(address)
-    for (include, network) in networks:
-        if address in network:
-            return include
-    return None
 
 
 class Averager(object):
@@ -75,21 +51,6 @@ def main():
     averager = Averager(options["window"])
 
     for line in stdin:
-        try:
-            when, sourceIP, _, destinationIP, _, duration, = line.split()
-        except ValueError:
-            stderr.write("Bad line: %r\n" % (line,))
-        sourceMatch = match(sourceIP, options["source-networks"])
-        if sourceMatch is None:
-            destinationMatch = match(destinationIP, options["destination-networks"])
-            if destinationMatch is None:
-                matched = True
-            else:
-                matched = destinationMatch
-        else:
-            matched = sourceMatch
-
-        if matched:
-            when = float(when)
-            duration = float(duration)
-            print when, averager.add(when, duration)
+        sample = loads(line)
+        timestamp = sample["timestamp"]
+        print timestamp, averager.add(timestamp, sample["interval"])

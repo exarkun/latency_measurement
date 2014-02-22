@@ -3,6 +3,7 @@ if __name__ == '__main__':
     raise SystemExit(latency_measurement.main())
 
 from time import time
+from json import dumps
 from socket import AF_PACKET, SOCK_RAW, socket, htons
 
 ETH_P_ALL = 0x0003
@@ -19,16 +20,10 @@ from twisted.pair.ip import IPProtocol
 
 @implementer(IRawDatagramProtocol)
 class RawTCPProtocol(AbstractDatagramProtocol):
-    def __init__(self):
+    def __init__(self, log):
         self._connections = {}
         self._times = []
-
-        # Unbuffered mode makes it possible to do things like tail the log and
-        # get semi-realtime results.  It should also prevent any lines from
-        # being written non-atomically (if partial lines get written there will
-        # be some mild corruption in the file).  This depends on the code using
-        # self._log writing complete lines, of course.
-        self._log = open("connection-setup-times.txt", "at", 0)
+        self._log = log
 
 
     def datagramReceived(self, data, partial, source, dest, *args, **kwargs):
@@ -52,13 +47,22 @@ class RawTCPProtocol(AbstractDatagramProtocol):
     def _recordConnection(self, now, ((src_ip, src_port), (dst_ip, dst_port)), interval):
         msg(format="Connection established in %(interval)s seconds", interval=interval)
         self._times.append(interval)
-        self._log.write("%s %s %d %s %s %s\n" % (now, src_ip, src_port, dst_ip, dst_port, interval))
+        self._log.write(dumps(dict(
+                    timestamp=now, interval=interval,
+                    source_ip=src_ip, source_port=src_port,
+                    destination_ip=dst_ip, destination_port=dst_port)) + b"\n")
         if len(self._times) % 100 == 0:
             msg(format="Mean connection setup time %(mean)s seconds", mean=sum(self._times) / len(self._times))
 
 
 def main():
-    tcp = RawTCPProtocol()
+    # Unbuffered mode makes it possible to do things like tail the log and
+    # get semi-realtime results.  It should also prevent any lines from
+    # being written non-atomically (if partial lines get written there will
+    # be some mild corruption in the file).  This depends on the code using
+    # self._log writing complete lines, of course.
+    log = open("connection-setup-times.json", "at", 0)
+    tcp = RawTCPProtocol(log)
 
     ipv4 = IPProtocol()
     ipv4.addProto(6, tcp)
