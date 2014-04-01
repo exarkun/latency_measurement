@@ -2,6 +2,7 @@ if __name__ == '__main__':
     import latency_measurement
     raise SystemExit(latency_measurement.main())
 
+from os import fdopen
 from time import time
 from json import dumps
 from socket import AF_PACKET, SOCK_RAW, socket, htons
@@ -61,7 +62,7 @@ def main():
     # being written non-atomically (if partial lines get written there will
     # be some mild corruption in the file).  This depends on the code using
     # self._log writing complete lines, of course.
-    log = open("connection-setup-times.json", "at", 0)
+    log = fdopen(1, "at", 0)
     tcp = RawTCPProtocol(log)
 
     ipv4 = IPProtocol()

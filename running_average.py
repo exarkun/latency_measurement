@@ -4,7 +4,7 @@ if __name__ == '__main__':
 
 from sys import argv, stdin
 
-from json import loads
+from json import loads, dumps
 
 from twisted.python.usage import UsageError, Options
 
@@ -53,4 +53,4 @@ def main():
     for line in stdin:
         sample = loads(line)
         timestamp = sample["timestamp"]
-        print timestamp, averager.add(timestamp, sample["interval"])
+        print dumps(dict(timestamp=timestamp, interval=averager.add(timestamp, sample["interval"])))
