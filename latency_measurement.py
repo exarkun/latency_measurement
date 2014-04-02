@@ -13,7 +13,7 @@ from scapy.all import TCP
 
 from zope.interface import implementer
 
-from twisted.python.log import msg
+from twisted.python.log import msg, err
 from twisted.internet.protocol import AbstractDatagramProtocol
 from twisted.pair.raw import IRawDatagramProtocol
 from twisted.pair.ethernet import EthernetProtocol
@@ -30,7 +30,12 @@ class RawTCPProtocol(AbstractDatagramProtocol):
     def datagramReceived(self, data, partial, source, dest, *args, **kwargs):
         now = time()
 
-        tcp = TCP(data)
+        try:
+            tcp = TCP(data)
+        except:
+            err(None, "scapy failed to parse TCP datagram")
+            return
+
         src = (source, tcp.sport)
         dst = (dest, tcp.dport)
         syn = tcp.flags & 2
